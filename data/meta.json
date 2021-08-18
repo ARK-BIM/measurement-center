@@ -1,0 +1,9 @@
+{
+  "projectId": "myProject",
+  "revisionId": "myRevision",
+  "author": "Filippo Diara",
+  "createdAt": "2020-01-23T12:04:21.018+00:00",
+  "schema": "IFC2x3",
+  "metaObjects": [
+  ]
+}

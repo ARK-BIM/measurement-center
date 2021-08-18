@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>ARK-BIM Measurements Center</title>
+	<script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/dat-gui/0.7.7/dat.gui.min.js"></script>
+	<script src="https://use.fontawesome.com/releases/v5.15.3/js/all.js" crossorigin="anonymous"></script>
+	<link rel="stylesheet" href="assets/css/style.css">
+	<link rel="shortcut icon" href="assets/favicon.png" type="image/png">
+
+</head>
+
+
+
+<body>
+<!--<div id="treePanel" class="treePanel"></div>-->
+<canvas id="myCanvas"></canvas>
+
+<canvas id="myNavCubeCanvas"></canvas>
+
+<div id="info">
+    <h1 style="font-weight: 750">  ARK-BIM</h1>
+    <h2 style="color: #a1a1a1; font-weight: 550"> Measurements Center &nbsp &nbsp &nbsp &nbsp &nbsp &nbsp &nbsp &nbsp &nbsp &nbsp &nbsp &nbsp &nbsp &nbsp &nbsp &nbsp &nbsp &nbsp &nbsp &nbsp </h2>
+	<p style="color: #929292">version 1.5.1</p>
+</div>
+
+
+
+
+<div id="my-gui-container" class="btn-group">
+    <button style="text-align: left">
+    <span style="color: #fff"> <i class="fas fa-cube fa-lg"></i>
+	</span> 
+	&nbsp
+	<a href="javascript:viewer.cameraFlight.flyTo({ projection: 'ortho', duration: 0.5  })" style="color:white; text-decoration:none">Orthographic view</a></button>
+    <button style="text-align: left">
+    <span style="color: #fff"> <i class="fab fa-unity fa-lg"></i>
+	</span> 
+	&nbsp
+    <a href="javascript:viewer.cameraFlight.flyTo({ projection: 'perspective', duration: 0.5  })" style="color:white; text-decoration:none"> Perspective view</a></button>
+    &nbsp
+    <button id="myBtn" style="text-align: left">
+    <span style="color: #fff"> <i class="fas fa-info-circle fa-lg"></i>
+	</span> 
+	&nbsp &nbsp Info</button>
+    <button id="measures" style="text-align: left">
+    <span style="color: #fff"> <i class="fas fa-ruler fa-lg"></i>
+	</span> 
+    &nbsp Distances / Clear</button>
+	<button id="angle" style="text-align: left">
+    <span style="color: #fff"> <i class="fas fa-ruler-combined fa-lg"></i>
+	</span> 
+    &nbsp &nbsp Angles / Clear </button>
+    &nbsp
+</div>
+
+<div id="myModal" class="modal">
+
+  <!-- Modal content -->
+  <div class="modal-content">
+    <span class="close">&times;</span>
+	<h1 style="font-weight: 750"> ARK-BIM Measurements center </h1>
+	<h3> Info </h3>
+    <p>Through this simple tool you can pick distances on 3D model depending on X-Y-Z dimensions.</p>
+	<p>version 1.51 © Filippo Diara - based on XEOKIT</p>
+	<h3> How it works </h3>
+	<p>Click on "Distances" or "Angles" in order to start picking distaces or angles on model's elements. Scale and convert units depending on your needs.</p>
+	<p>This is a read-only tool without saving mode. If you want to save metric information you have to create a screenshot.</p>
+	<p>Click on "Clear" in order to remove measurements and clear the interface</p>
+	<h3> How to navigate the model</h3>
+	<p> Mouse Left click: 360° orbit /// Mouse Right click: Axis Pan /// Mouse Wheel: Zoom</p>
+  </div>
+
+</div>
+
+</body>
+
+<!--<script src="dist/main.js" defer></script>-->
+
+<script type="module">
+
+
+    import {Viewer} from "./lib/xeokit/viewer/Viewer.js";
+    import {XKTLoaderPlugin} from "./lib/xeokit/plugins/XKTLoaderPlugin/XKTLoaderPlugin.js";
+    import {DistanceMeasurementsPlugin} from "./lib/xeokit/plugins/DistanceMeasurementsPlugin/DistanceMeasurementsPlugin.js";
+	import {AngleMeasurementsPlugin} from "./lib/xeokit/plugins/AngleMeasurementsPlugin/AngleMeasurementsPlugin.js";
+    import {NavCubePlugin} from "./lib/xeokit/plugins/NavCubePlugin/NavCubePlugin.js";
+	import {Mesh} from "./lib/xeokit/viewer/scene/mesh/Mesh.js";
+    import {buildGridGeometry} from "./lib/xeokit/viewer/scene/geometry/builders/buildGridGeometry.js";
+    import {PhongMaterial} from "./lib/xeokit/viewer/scene/materials/PhongMaterial.js";
+    import {VBOGeometry} from "./lib/xeokit/viewer/scene/geometry/VBOGeometry.js";
+	import {DirLight} from "./lib/xeokit/viewer/scene/lights/DirLight.js";
+    import {SAO} from "./lib/xeokit/viewer/scene/postfx/SAO.js";
+
+    const viewer = new Viewer({
+        canvasId: "myCanvas",
+        transparent: true,
+		antialias: true,
+    });
+
+        const xktLoader = new XKTLoaderPlugin(viewer);
+		
+		
+const sao = viewer.scene.sao;
+
+sao.enabled = true; // Enable SAO - only works if supported (see above)
+sao.intensity = 0.15;
+sao.bias = 0.5;
+sao.scale = 500.0;
+sao.minResolution = 0.0;
+sao.kernelRadius = 100;
+sao.blendCutoff = 0.2;
+
+
+    new NavCubePlugin(viewer, {
+        canvasId: "myNavCubeCanvas",
+        visible: true,           // Initially visible (default)
+        size: 180,               // NavCube size in pixels (default is 200)
+        alignment: "topRight",   // Align NavCube to top-left of Viewer canvas
+        topMargin: 170,          // 170 pixels margin from top of Viewer canvas
+        cameraFly: true,       // Fly camera to each selected axis/diagonal
+        cameraFitFOV: 45,        // How much field-of-view the scene takes once camera has fitted it to view
+        cameraFlyDuration: 0.3, // How long (in seconds) camera takes to fly to each new axis/diagonal
+        color: "White",      // Default value
+        frontColor: "#bf8667", // Default values
+        backColor: "#bf8667",
+        leftColor: "#469982",
+        rightColor: "#469982",
+        topColor: "#5f9bb0",
+        bottomColor: "#5f9bb0",
+        hoverColor: "rgba(0,15,5,0.4)" // Default value
+    });
+	
+        var model = xktLoader.load({
+            id: "myModel",
+            src: "data/sample.xkt",
+            metaModelSrc: "data/meta.json",
+            edges: false,
+			saoEnabled: true
+        });
+
+		
+    model.on("loaded", function() {
+        viewer.cameraFlight.flyTo(model);
+    });
+	
+	window.viewer = viewer;
+	viewer.cameraControl.followPointer = true;
+			
+	var metrics = new function () {
+        this.scale = 1.0;
+        this.units = "meters";
+    }();
+	
+    var update = function () {
+        viewer.scene.metrics.scale = metrics.scale;
+        viewer.scene.metrics.units = metrics.units;
+        requestAnimationFrame(update);
+    };
+
+    update();
+	
+
+    var gui = new dat.GUI({ autoPlace: false });
+
+    gui.add(metrics, 'scale', 0.1, 10.0);
+    gui.add(metrics, 'units', ["meters", "centimeters", "millimeters", "yards", "feet", "inches"]);
+
+
+    var customContainer = document.getElementById('my-gui-container');
+    customContainer.appendChild(gui.domElement);
+	
+	    new Mesh(viewer.scene, {
+        geometry: new VBOGeometry(viewer.scene, buildGridGeometry({
+            size: 55,
+            divisions: 25
+        })),
+        material: new PhongMaterial(viewer.scene, {
+            color: [0.0, 0.0, 0.0],
+            emissive: [0.3, 0.3, 0.3]
+        }),
+        position: [10, 0, -15],
+        collidable: true
+    });
+	
+	var modal = document.getElementById("myModal");
+
+// Get the button that opens the modal
+var btn = document.getElementById("myBtn");
+
+// Get the <span> element that closes the modal
+var span = document.getElementsByClassName("close")[0];
+
+// When the user clicks the button, open the modal 
+btn.onclick = function() {
+  modal.style.display = "block";
+}
+
+// When the user clicks on <span> (x), close the modal
+span.onclick = function() {
+  modal.style.display = "none";
+}
+
+// When the user clicks anywhere outside of the modal, close it
+window.onclick = function(event) {
+  if (event.target == modal) {
+    modal.style.display = "none";
+  }
+}
+
+let enableMeasurement = true;
+document.getElementById("measures").onclick = function () {
+measurement(enableMeasurement);
+enableMeasurement = !enableMeasurement;
+}
+let distanceMeasurements = new DistanceMeasurementsPlugin(viewer);
+
+function measurement(bool) {
+
+if (bool) {
+distanceMeasurements.control.activate();
+} 
+else {
+distanceMeasurements.clear();
+distanceMeasurements.control.destroy();
+distanceMeasurements = new DistanceMeasurementsPlugin(viewer);
+}
+};
+
+
+let enableAngle = true;
+document.getElementById("angle").onclick = function () {
+angle(enableAngle);
+enableAngle = !enableAngle;
+}
+let angleMeasurements = new AngleMeasurementsPlugin(viewer);
+
+function angle(bool) {
+
+if (bool) {
+angleMeasurements.control.activate();
+} 
+else {
+angleMeasurements.clear();
+angleMeasurements.control.destroy();
+angleMeasurements = new AngleMeasurementsPlugin(viewer);
+}
+};
+
+
+
+    viewer.scene.clearLights();
+
+    new DirLight(viewer.scene, {
+        id: "keyLight",
+        dir: [0.8, -0.6, -0.8],
+        color: [0.3, 0.3, 0.3],
+        intensity: 0.3,
+        space: "view"
+    });
+
+    new DirLight(viewer.scene, {
+        id: "fillLight",
+        dir: [-0.8, -0.4, -0.4],
+        color: [0.3, 0.3, 0.3],
+        intensity: 1.2,
+        space: "view"
+    });
+
+    new DirLight(viewer.scene, {
+        id: "rimLight",
+        dir: [0.2, -0.8, 0.8],
+        color: [0, 0, 0],
+        intensity: 1,
+        space: "view"
+    });
+	
+
+
+</script>
+</html>
